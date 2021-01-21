@@ -101,7 +101,6 @@ namespace Heelies
         {
             Game1.player.temporarySpeedBuff = buff;
             AnimateRoll(Game1.player.movementDirections);
-            Debug($"movementSpeed at {Game1.player.getMovementSpeed()} (buff is {buff})");
 
             if (Game1.player.temporarySpeedBuff > 0)
             {
