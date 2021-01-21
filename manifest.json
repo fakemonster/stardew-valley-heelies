@@ -1,10 +1,10 @@
 {
   "Name": "Heelies",
   "Author": "fakemonster",
-  "Version": "1.0.0",
+  "Version": "0.1.1",
   "Description": "Sick heelies for the homie",
   "UniqueID": "fakemonster.Heelies",
   "EntryDll": "Heelies.dll",
   "MinimumApiVersion": "3.0.0",
-  "UpdateKeys": []
+  "UpdateKeys": ["Nexus:7751"]
 }
