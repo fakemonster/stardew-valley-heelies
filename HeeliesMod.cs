@@ -1,6 +1,7 @@
 ﻿using System;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Network;
 
@@ -8,7 +9,7 @@ namespace Heelies
 {
     public class ModConfig
     {
-        public SButton heeliesButton = SButton.Space;
+        public KeybindList heeliesButton = KeybindList.Parse("Space");
         public float initialSpeedBoost = 3.5f;
     }
 
@@ -30,8 +31,7 @@ namespace Heelies
         public override void Entry(IModHelper helper)
         {
             config = this.Helper.ReadConfig<ModConfig>();
-            helper.Events.Input.ButtonPressed += this.OnButtonPressed;
-            helper.Events.Input.ButtonReleased += this.OnButtonReleased;
+            helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
             helper.Events.GameLoop.UpdateTicking += this.OnUpdateTicking;
             helper.Events.Player.Warped += this.OnWarped;
         }
@@ -43,15 +43,20 @@ namespace Heelies
         /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event data.</param>
-        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
+        private void OnButtonsChanged(object sender, ButtonsChangedEventArgs e)
         {
             // ignore if player hasn't loaded a save yet
             if (!Context.IsWorldReady)
                 return;
 
-            if (!isRolling && e.Button == config.heeliesButton && CanRoll())
+            if (!isRolling && config.heeliesButton.JustPressed() && CanRoll())
             {
                 Engage();
+            }
+            if (isRolling && config.heeliesButton.GetState() == SButtonState.Released)
+            {
+                Disengage();
+                JumpToPlayer();
             }
         }
 
@@ -60,15 +65,6 @@ namespace Heelies
             if (isRolling)
             {
                 Roll();
-            }
-        }
-
-        private void OnButtonReleased(object sender, ButtonReleasedEventArgs e)
-        {
-            if (isRolling && e.Button == config.heeliesButton)
-            {
-                Disengage();
-                JumpToPlayer();
             }
         }
 
