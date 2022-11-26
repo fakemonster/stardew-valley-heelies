@@ -109,7 +109,7 @@ namespace Heelies
             NetPosition position = Game1.player.position;
             // TODO: is this temporary speed buff the CURRENT player's temporary speed buff? probably not?
             SetSpeedBuff(Game1.player.temporarySpeedBuff + config.initialSpeedBoost);
-            Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
+            // Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
 
             SetIsRolling(true);
         }
@@ -146,7 +146,7 @@ namespace Heelies
             Game1.player.completelyStopAnimatingOrDoingAction();
 
             NetPosition position = Game1.player.position;
-            Debug($"{Game1.player.Name} released heelies at {position.X} {position.Y}");
+            // Debug($"{Game1.player.Name} released heelies at {position.X} {position.Y}");
         }
 
         private void FollowPlayerSlow()
