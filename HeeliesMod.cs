@@ -18,8 +18,8 @@ namespace Heelies
         private static readonly int[] frames = { 13, 7, 1, 7 };
         private const int Left = 3;
 
-        public bool isRolling = false;
-        public float buff = 0;
+        private readonly PerScreen<bool> isRolling = new PerScreen<bool>(createNewState: () => false);
+        private readonly PerScreen<float> speedBuff = new PerScreen<float>(createNewState: () => 0);
         public ModConfig config;
 
 
@@ -45,15 +45,15 @@ namespace Heelies
         /// <param name="e">The event data.</param>
         private void OnButtonsChanged(object sender, ButtonsChangedEventArgs e)
         {
-            // ignore if player hasn't loaded a save yet
-            if (!Context.IsWorldReady)
+            // ignore if player isn't in a position to cruise
+            if (!Context.IsPlayerFree)
                 return;
 
-            if (!isRolling && config.heeliesButton.JustPressed() && CanRoll())
+            if (!IsRolling() && config.heeliesButton.JustPressed() && CanRoll())
             {
                 Engage();
             }
-            if (isRolling && config.heeliesButton.GetState() == SButtonState.Released)
+            if (IsRolling() && config.heeliesButton.GetState() == SButtonState.Released)
             {
                 Disengage();
                 JumpToPlayer();
@@ -62,7 +62,7 @@ namespace Heelies
 
         private void OnUpdateTicking(object sender, UpdateTickingEventArgs e)
         {
-            if (isRolling)
+            if (IsRolling())
             {
                 Roll();
             }
@@ -70,10 +70,30 @@ namespace Heelies
 
         private void OnWarped(object sender, WarpedEventArgs e)
         {
-            if (isRolling)
+            if (IsRolling())
             {
                 Disengage();
             }
+        }
+
+        private bool IsRolling()
+        {
+            return isRolling.Value;
+        }
+
+        private void SetIsRolling(bool rolling)
+        {
+            isRolling.SetValueForScreen(Context.ScreenId, rolling);
+        }
+
+        private float SpeedBuff()
+        {
+            return speedBuff.Value;
+        }
+
+        private void SetSpeedBuff(float newBuff)
+        {
+            speedBuff.SetValueForScreen(Context.ScreenId, newBuff);
         }
 
         private bool CanRoll()
@@ -87,15 +107,16 @@ namespace Heelies
         private void Engage()
         {
             NetPosition position = Game1.player.position;
-            buff = Game1.player.temporarySpeedBuff + config.initialSpeedBoost;
-            Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {buff}");
+            // TODO: is this temporary speed buff the CURRENT player's temporary speed buff? probably not?
+            SetSpeedBuff(Game1.player.temporarySpeedBuff + config.initialSpeedBoost);
+            Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
 
-            isRolling = true;
+            SetIsRolling(true);
         }
 
         private void Roll()
         {
-            Game1.player.temporarySpeedBuff = buff;
+            Game1.player.temporarySpeedBuff = SpeedBuff();
             AnimateRoll(Game1.player.movementDirections);
 
             if (Game1.player.temporarySpeedBuff > 0)
@@ -106,7 +127,7 @@ namespace Heelies
                 FollowPlayerSlow();
             }
 
-            buff -= 0.02f;
+            SetSpeedBuff(SpeedBuff() - 0.02f);
         }
 
         private void AnimateRoll(System.Collections.Generic.List<int> directions)
@@ -121,7 +142,7 @@ namespace Heelies
 
         private void Disengage()
         {
-            isRolling = false;
+            SetIsRolling(false);
             Game1.player.completelyStopAnimatingOrDoingAction();
 
             NetPosition position = Game1.player.position;
@@ -135,7 +156,7 @@ namespace Heelies
 
         private void FollowPlayerFast()
         {
-            Game1.moveViewportTo(Game1.player.position, (Game1.player.speed + buff) * 0.95f);
+            Game1.moveViewportTo(Game1.player.position, (Game1.player.speed + SpeedBuff()) * 0.95f);
         }
 
         private void JumpToPlayer()
