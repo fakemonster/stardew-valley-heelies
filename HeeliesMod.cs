@@ -151,17 +151,22 @@ namespace Heelies
 
         private void FollowPlayerSlow()
         {
-            Game1.moveViewportTo(Game1.player.position, Game1.player.speed);
+            MoveViewportTo(Game1.player.speed);
         }
 
         private void FollowPlayerFast()
         {
-            Game1.moveViewportTo(Game1.player.position, (Game1.player.speed + SpeedBuff()) * 0.95f);
+            MoveViewportTo((Game1.player.speed + SpeedBuff()) * 0.95f);
         }
 
         private void JumpToPlayer()
         {
-            Game1.moveViewportTo(Game1.player.position, 30);
+            MoveViewportTo(30);
+        }
+
+        private void MoveViewportTo(float speed)
+        {
+            Game1.moveViewportTo(Game1.player.position.Value, speed);
         }
 
         private void Debug(String s)
