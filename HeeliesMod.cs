@@ -1,8 +1,10 @@
 ﻿using System;
+using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
 using StardewValley;
+using StardewValley.Buffs;
 using StardewValley.Network;
 
 namespace Heelies
@@ -10,16 +12,19 @@ namespace Heelies
     public class ModConfig
     {
         public KeybindList heeliesButton = KeybindList.Parse("Space");
-        public float initialSpeedBoost = 3.5f;
+        public decimal initialSpeedBoost = 3.5m;
     }
 
     public class HeeliesMod : Mod
     {
         private static readonly int[] frames = { 13, 7, 1, 7 };
         private const int Left = 3;
+        private const decimal Deceleration = 0.1m;
+        private const string BuffId = "Moonbaseboss.HeeliesMod_Roll";
+        private const string IconPath = "assets/slides.png";
 
         private readonly PerScreen<bool> isRolling = new PerScreen<bool>(createNewState: () => false);
-        private readonly PerScreen<float> speedBuff = new PerScreen<float>(createNewState: () => 0);
+        private readonly PerScreen<decimal> speedBuff = new PerScreen<decimal>(createNewState: () => 0m);
         public ModConfig config;
 
 
@@ -34,6 +39,8 @@ namespace Heelies
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
             helper.Events.GameLoop.UpdateTicking += this.OnUpdateTicking;
             helper.Events.Player.Warped += this.OnWarped;
+            // preload this asset for a less-jumpy first roll
+            this.Helper.ModContent.Load<Texture2D>(IconPath);
         }
 
 
@@ -56,7 +63,6 @@ namespace Heelies
             if (IsRolling() && config.heeliesButton.GetState() == SButtonState.Released)
             {
                 Disengage();
-                JumpToPlayer();
             }
         }
 
@@ -64,7 +70,7 @@ namespace Heelies
         {
             if (IsRolling())
             {
-                Roll();
+                Roll(e.Ticks % 6 == 0);
             }
         }
 
@@ -86,14 +92,43 @@ namespace Heelies
             isRolling.SetValueForScreen(Context.ScreenId, rolling);
         }
 
-        private float SpeedBuff()
+        private decimal SpeedBuff()
         {
             return speedBuff.Value;
         }
 
-        private void SetSpeedBuff(float newBuff)
+        private void SetSpeedBuff(decimal newBuff)
         {
+            Buff buff = new Buff(
+                id: BuffId,
+                displayName: "Heelies",
+                description: newBuff <= 0 ? "Looks like you need a push." : "",
+                iconTexture: this.Helper.ModContent.Load<Texture2D>(IconPath),
+                iconSheetIndex: IconIndex(newBuff),
+                duration: Buff.ENDLESS,
+                effects: new BuffEffects()
+                {
+                    Speed = { (float)newBuff }
+                }
+            );
+            Game1.player.applyBuff(buff);
+
             speedBuff.SetValueForScreen(Context.ScreenId, newBuff);
+        }
+
+        private int IconIndex(decimal speed)
+        {
+            switch (speed)
+            {
+                case > 2:
+                    return 0;
+                case > 1:
+                    return 1;
+                case > 0:
+                    return 2;
+                default:
+                    return 3;
+            }
         }
 
         private bool CanRoll()
@@ -107,27 +142,25 @@ namespace Heelies
         private void Engage()
         {
             NetPosition position = Game1.player.position;
-            // TODO: is this temporary speed buff the CURRENT player's temporary speed buff? probably not?
-            SetSpeedBuff(Game1.player.temporarySpeedBuff + config.initialSpeedBoost);
-            // Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
+            SetSpeedBuff(config.initialSpeedBoost);
+            Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
 
             SetIsRolling(true);
         }
 
-        private void Roll()
+        private void Roll(bool shouldDecrement)
         {
-            Game1.player.temporarySpeedBuff = SpeedBuff();
             AnimateRoll(Game1.player.movementDirections);
 
-            if (Game1.player.temporarySpeedBuff > 0)
+            if (shouldDecrement)
             {
-                FollowPlayerFast();
-            } else
-            {
-                FollowPlayerSlow();
+                SetSpeedBuff(Math.Max(SpeedBuff() - Deceleration, -5));
             }
-
-            SetSpeedBuff(SpeedBuff() - 0.02f);
+            else
+            {
+                // TODO: not reloading the buff on every frame makes the icon wacky. why??
+                SetSpeedBuff(SpeedBuff());
+            }
         }
 
         private void AnimateRoll(System.Collections.Generic.List<int> directions)
@@ -143,35 +176,22 @@ namespace Heelies
         private void Disengage()
         {
             SetIsRolling(false);
+            Buff buff = new Buff(
+                id: BuffId,
+                displayName: "Heelies bro",
+                duration: 1
+            );
+            Game1.player.applyBuff(buff);
             Game1.player.completelyStopAnimatingOrDoingAction();
 
+
             NetPosition position = Game1.player.position;
-            // Debug($"{Game1.player.Name} released heelies at {position.X} {position.Y}");
-        }
-
-        private void FollowPlayerSlow()
-        {
-            MoveViewportTo(Game1.player.speed);
-        }
-
-        private void FollowPlayerFast()
-        {
-            MoveViewportTo((Game1.player.speed + SpeedBuff()) * 0.95f);
-        }
-
-        private void JumpToPlayer()
-        {
-            MoveViewportTo(30);
-        }
-
-        private void MoveViewportTo(float speed)
-        {
-            Game1.moveViewportTo(Game1.player.position.Value, speed);
+            Debug($"{Game1.player.Name} released heelies at {position.X} {position.Y}");
         }
 
         private void Debug(String s)
         {
-            this.Monitor.Log(s, LogLevel.Debug);
+            // this.Monitor.Log(s, LogLevel.Debug);
         }
     }
 }
