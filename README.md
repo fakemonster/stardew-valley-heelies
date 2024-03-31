@@ -8,6 +8,7 @@ Sick heelies for the homie
 (run once to create the config file)
 
 As of *0.2.0*:
+
 ***heeliesButton*** (default "Space"): button for using your new kicks. Comma-separate for multiple bindings, like "Space, RightTrigger"
  For possible values see below enumeration tables:
 - [controller button names](https://learn.microsoft.com/en-us/previous-versions/windows/xna/bb975202(v=xnagamestudio.40))
