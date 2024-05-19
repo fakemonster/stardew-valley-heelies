@@ -13,6 +13,7 @@ namespace Heelies
     {
         public KeybindList heeliesButton = KeybindList.Parse("Space");
         public decimal initialSpeedBoost = 3.5m;
+        public float staminaCost = 0;
     }
 
     public class HeeliesMod : Mod
@@ -116,6 +117,14 @@ namespace Heelies
             speedBuff.SetValueForScreen(Context.ScreenId, newBuff);
         }
 
+        private void BurnStamina(float staminaCost)
+        {
+            if (staminaCost > 0)
+            {
+                Game1.player.Stamina -= staminaCost;
+            }
+        }
+
         private int IconIndex(decimal speed)
         {
             switch (speed)
@@ -143,6 +152,7 @@ namespace Heelies
         {
             NetPosition position = Game1.player.position;
             SetSpeedBuff(config.initialSpeedBoost);
+            BurnStamina(config.staminaCost);
             Debug($"{Game1.player.Name} engaged heelies at {position.X} {position.Y} | Speed buff: {SpeedBuff()}");
 
             SetIsRolling(true);
